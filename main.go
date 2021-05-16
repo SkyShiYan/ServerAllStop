@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -16,7 +17,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// 启动服务
-	go startServer(ctx)
+	go startServer(ctx, 8080)
+	go startServer(ctx, 8081)
 
 	sigs := make(chan os.Signal, 1)
 	// signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -39,11 +41,11 @@ func main() {
 	fmt.Println("关闭")
 }
 
-func startServer(ctx context.Context) {
-	fmt.Println("开始启动服务，监听8080端口")
-	srv := &http.Server{Addr: ":8080"}
+func startServer(ctx context.Context, port int) {
+	fmt.Println("开始启动服务，监听" + strconv.Itoa(port) + "端口")
+	srv := &http.Server{Addr: ":" + strconv.Itoa(port)}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/"+strconv.Itoa(port), func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Hello World")
 	})
 	go func(ctx context.Context, srv *http.Server) {
@@ -51,14 +53,14 @@ func startServer(ctx context.Context) {
 		case <-ctx.Done():
 			fmt.Println("收到cancel信号准备关闭服务")
 			if err := srv.Close(); err != nil {
-				fmt.Println("服务关闭有异常", err.Error())
+				fmt.Println(strconv.Itoa(port)+"服务关闭有异常", err.Error())
 				panic(err)
 			} else {
-				fmt.Println("服务已关闭")
+				fmt.Println(strconv.Itoa(port) + "服务已关闭")
 			}
 		}
 	}(ctx, srv)
 	// 启动http server
-	fmt.Println("启动服务")
+	fmt.Println(strconv.Itoa(port) + "启动服务")
 	srv.ListenAndServe()
 }
